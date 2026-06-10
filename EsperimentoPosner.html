@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Esperimento di Posner</title>
+    <style>
+        /* Blocco totale dello scorrimento e adozione di un layout fisso */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #ffffff;
+            color: #000000;
+            /* Rimuove l'alone grigio del tocco su mobile e previene selezioni accidentali */
+            -webkit-tap-highlight-color: transparent;
+            user-select: none; 
+            -webkit-user-select: none;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+            padding: 15px;
+        }
+
+        /* Schermate fisse senza scroll */
+        .screen {
+            display: none;
+            width: 100%;
+            max-width: 600px;
+            height: 100%;
+            max-height: 90vh;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+        }
+
+        .active { display: flex !important; }
+
+        /* Centratura interna dei blocchi */
+        .content-block {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+        }
+
+        h1 { font-size: 26px; margin: 10px 0; text-align: center; }
+        h2 { 
+            font-size: 22px; 
+            margin: 10px 0 30px 0; 
+            font-weight: bold; 
+            padding-bottom: 10px;
+            text-align: center;
+            width: 100%;
+        }
+
+        /* Colori identificativi delle condizioni */
+        .color-fisica { color: #0056b3; border-bottom: 3px solid #0056b3; }
+        .color-fonologica { color: #1e7e34; border-bottom: 3px solid #1e7e34; }
+        .color-categoriale { color: #b21f2d; border-bottom: 3px solid #b21f2d; }
+
+        .bg-fisica { background-color: #0056b3 !important; color: white !important; }
+        .bg-fonologica { background-color: #1e7e34 !important; color: white !important; }
+        .bg-categoriale { background-color: #b21f2d !important; color: white !important; }
+
+        /* Elementi del core task */
+        #countdown, #instr-countdown-text { font-size: 45px; font-family: monospace; margin: 40px 0; font-weight: bold; }
+        
+        /* Font monospaced per differenziare la I dalla l */
+        #stimulus { 
+            font-size: 90px; 
+            font-weight: bold; 
+            margin: 40px 0; 
+            letter-spacing: 30px; 
+            display: none; 
+            font-family: 'Consolas', 'Courier New', 'Georgia', monospace; 
+        }
+        
+        /* Bottoni stabili e reattivi */
+        .btn-container { display: flex; justify-content: center; gap: 20px; width: 100%; margin-bottom: 20px;}
+        button {
+            flex: 1;
+            max-width: 200px;
+            padding: 18px 0;
+            font-size: 18px;
+            cursor: pointer;
+            border: 2px solid #000;
+            background-color: #fff;
+            color: #000;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: background 0.1s, color 0.1s;
+            touch-action: manipulation; 
+        }
+        button:active { background-color: #000; color: #fff; transform: scale(0.98); }
+
+        /* Grafici e Dettagli Risultati */
+        .results-container {
+            width: 100%;
+            overflow-y: auto;
+            flex-grow: 1;
+            margin: 15px 0;
+        }
+        .res-card {
+            border: 2px solid #000;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        .res-header { font-weight: bold; font-size: 16px; margin-bottom: 8px; display: flex; justify-content: space-between;}
+        .res-info { font-size: 14px; margin-bottom: 5px; color: #333; }
+        
+        /* Barra del grafico */
+        .bar-container { background-color: #e0e0e0; width: 100%; height: 20px; border-radius: 4px; margin-top: 5px; overflow: hidden;}
+        .bar { height: 100%; width: 0%; transition: width 0.5s ease-out; }
+    </style>
+</head>
+<body>
+
+    <div id="screen-start" class="screen active">
+        <h1>Esperimento di Posner</h1>
+        <div class="content-block" style="justify-content: flex-start; text-align: left; width: 100%;">
+            <p>Confronta le due lettere che appariranno e decidi se sono <b>Uguale</b> o <b>Diverso</b>.</p>
+            <p style="align-self: baseline; padding-left: 7%;"><span style="color:#0056b3; font-weight:bold; justify-content: flex-start; text-align: left;">■ Identità Fisica:</span> Stessa forma identica (es. A-A, b-b).</span></p>
+            <p style="align-self: baseline; padding-left: 7%;"><span style="color:#1e7e34; font-weight:bold; justify-content: flex-start; text-align: left;">■ Identità Fonologica:</span> Stessa lettera/suono (es. A-a, B-b).</span></p>
+            <p style="align-self: baseline; padding-left: 7%;"><span style="color:#b21f2d; font-weight:bold; justify-content: flex-start; text-align: left;">■ Identità Categoriale:</span> Stessa categoria (es. Voc-Voc A-E, o Cons-Cons b-f).</span></p>
+            <hr style="width:100%; border:0; border-top:1px solid #ccc; margin:15px 0;">
+            <p style="font-size: 14px; background: #f0f0f0; padding: 10px; border-radius: 6px; text-align: center; width:96%;">
+                💻 <b>Su PC:</b> Usa la <b>Freccia Sinistra (←)</b> per UGUALE e la <b>Freccia Destra (→)</b> per DIVERSO.<br>
+                📱 <b>Su Smartphone:</b> Usa i pulsanti sullo schermo.
+            </p>
+        </div>
+        <button onclick="startExperiment()" style="max-width:100%; width:60%; flex:none;">AVVIA ESPERIMENTO</button>
+    </div>
+
+    <div id="screen-instruction" class="screen">
+        <h2 id="instr-title">Titolo Blocco</h2>
+        <div class="content-block">
+            <p id="instr-desc" style="font-size: 20px; text-align: left; margin-bottom: 30px;"></p>
+            <p style="font-size: 16px; color: #555;">Il test inizierà tra:</p>
+            <div id="instr-countdown-text">10</div>
+        </div>
+    </div>
+
+    <div id="screen-exp" class="screen">
+        <h2 id="condition-title">Condizione</h2>
+        <div class="content-block">
+            <div id="countdown">3.00</div>
+            <div id="stimulus">A B</div>
+        </div>
+        <div class="btn-container" id="response-buttons" style="visibility: hidden;">
+            <button onclick="recordResponse(true)">UGUALE<br><span style="font-size:11px; font-weight:normal; display:block; margin-top:2px;">(Freccia Fes. ←)</span></button>
+            <button onclick="recordResponse(false)">DIVERSO<br><span style="font-size:11px; font-weight:normal; display:block; margin-top:2px;">(Freccia Des. →)</span></button>
+        </div>
+    </div>
+
+    <div id="screen-results" class="screen">
+        <h1>Analisi Risultati</h1>
+        <div class="results-container" id="results-list"></div>
+        <button style="max-width:100%; width:60%; flex:none;" onclick="location.reload()">RIPETI L'ESPERIMENTO</button>
+    </div>
+
+    <script>
+        const vocali = ['A', 'E', 'I', 'O', 'U'];
+        const consonanti = ['B', 'C', 'D', 'F', 'G', 'H', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'Z'];
+        const tuttoAlfabeto = [...vocali, ...consonanti];
+
+        // Definizione dei 3 blocchi
+        const instructions = [
+            { 
+                id: "Fisica", 
+                title: "Identità Fisica", 
+                desc: "<b>Regola:</b> Devono avere la stessa identica forma.<br><br>" +
+                    "🟢 <b>UGUALE:</b> A - A | b - b<br>" +
+                    "🔴 <b>DIVERSO:</b> A - a | A - B | c - d", 
+                class: "fisica" 
+            },
+            { 
+                id: "Fonologica", 
+                title: "Identità Fonologica", 
+                desc: "<b>Regola:</b> Devono avere lo stesso suono (anche maiuscolo/minuscolo).<br><br>" +
+                    "🟢 <b>UGUALE:</b> A - a | B - B | m - m<br>" +
+                    "🔴 <b>DIVERSO:</b> A - B | a - b | t - D", 
+                class: "fonologica" 
+            },
+            { 
+                id: "Categoriale", 
+                title: "Identità Categoriale", 
+                desc: "<b>Regola:</b> Devono essere entrambe vocali o entrambe consonanti.<br><br>" +
+                    "🟢 <b>UGUALE:</b> A - E (vocali) | b - f (consonanti) | O - u<br>" +
+                    "🔴 <b>DIVERSO:</b> A - b (vocale-consonante) | S - i", 
+                class: "categoriale" 
+            }
+        ];
+
+        let blockTrials = [];
+        let currentBlockIndex = 0;
+        let currentTrialIndex = 0;
+        let startTime = 0;
+        let results = [];
+        let acceptInput = false;
+
+        function getRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+        function randomCase(letter) { return Math.random() > 0.5 ? letter.toUpperCase() : letter.toLowerCase(); }
+
+        // Generatori di Trial per singolo blocco
+        function generateBlock(tipo, provePerCategoria) {
+            let generated = [];
+            let meta = provePerCategoria / 2;
+
+            if (tipo === "Fisica") {
+                for (let i = 0; i < meta; i++) {
+                    let l = randomCase(getRandom(tuttoAlfabeto));
+                    generated.push({ cond: "Identità Fisica", class: "fisica", l1: l, l2: l, expected: true });
+                }
+                for (let i = 0; i < meta; i++) {
+                    let l1 = getRandom(tuttoAlfabeto);
+                    let l2 = getRandom(tuttoAlfabeto.filter(x => x !== l1));
+                    let usaMaiuscolo = Math.random() > 0.5;
+                    generated.push({ cond: "Identità Fisica", class: "fisica", l1: usaMaiuscolo ? l1.toUpperCase() : l1.toLowerCase(), l2: usaMaiuscolo ? l2.toUpperCase() : l2.toLowerCase(), expected: false });
+                }
+            } else if (tipo === "Fonologica") {
+                for (let i = 0; i < meta; i++) {
+                    let l = getRandom(tuttoAlfabeto);
+                    let inv = Math.random() > 0.5;
+                    generated.push({ cond: "Identità Fonologica", class: "fonologica", l1: inv ? l.toUpperCase() : l.toLowerCase(), l2: inv ? l.toLowerCase() : l.toUpperCase(), expected: true });
+                }
+                for (let i = 0; i < meta; i++) {
+                    let l1 = getRandom(tuttoAlfabeto);
+                    let l2 = getRandom(tuttoAlfabeto.filter(x => x !== l1));
+                    let inv = Math.random() > 0.5;
+                    generated.push({ cond: "Identità Fonologica", class: "fonologica", l1: inv ? l1.toUpperCase() : l1.toLowerCase(), l2: inv ? l2.toLowerCase() : l2.toUpperCase(), expected: false });
+                }
+            } else if (tipo === "Categoriale") {
+                for (let i = 0; i < meta; i++) {
+                    let cat = Math.random() > 0.5 ? vocali : consonanti;
+                    let l1 = getRandom(cat);
+                    let l2 = getRandom(cat.filter(x => x !== l1));
+                    generated.push({ cond: "Identità Categoriale", class: "categoriale", l1: randomCase(l1), l2: randomCase(l2), expected: true });
+                }
+                for (let i = 0; i < meta; i++) {
+                    let l1 = getRandom(vocali);
+                    let l2 = getRandom(consonanti);
+                    let inv = Math.random() > 0.5;
+                    generated.push({ cond: "Identità Categoriale", class: "categoriale", l1: randomCase(inv ? l2 : l1), l2: randomCase(inv ? l1 : l2), expected: false });
+                }
+            }
+            return generated.sort(() => Math.random() - 0.5); // Mescola internamente il blocco
+        }
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function startExperiment() {
+            // Genera i 3 blocchi separati (es. 10 prove per blocco)
+            blockTrials = [
+                generateBlock("Fisica", 10),
+                generateBlock("Fonologica", 10),
+                generateBlock("Categoriale", 10)
+            ];
+            results = [];
+            startBlock(0);
+        }
+
+        function startBlock(index) {
+            if (index >= instructions.length) {
+                endExperiment();
+                return;
+            }
+
+            currentBlockIndex = index;
+            currentTrialIndex = 0;
+            const inst = instructions[index];
+
+            // Setup schermata di istruzioni
+            document.getElementById('instr-title').innerText = inst.title;
+            document.getElementById('instr-title').className = "color-" + inst.class;
+            document.getElementById('instr-desc').innerHTML = inst.desc;
+            
+            showScreen('screen-instruction');
+
+            // Conto alla rovescia di 10 secondi
+            let timeLeft = 10;
+            const timerEl = document.getElementById('instr-countdown-text');
+            timerEl.innerText = timeLeft;
+
+            let interval = setInterval(() => {
+                timeLeft--;
+                timerEl.innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(interval);
+                    showScreen('screen-exp');
+                    runTrial();
+                }
+            }, 1000);
+        }
+
+        function runTrial() {
+            let currentBlock = blockTrials[currentBlockIndex];
+            
+            // Se il blocco attuale è finito, passa al blocco successivo
+            if (currentTrialIndex >= currentBlock.length) {
+                startBlock(currentBlockIndex + 1);
+                return;
+            }
+
+            acceptInput = false;
+            const trial = currentBlock[currentTrialIndex];
+            
+            const titleEl = document.getElementById('condition-title');
+            titleEl.innerText = trial.cond.toUpperCase();
+            titleEl.className = "color-" + trial.class;
+
+            document.getElementById('stimulus').style.display = 'none';
+            document.getElementById('response-buttons').style.visibility = 'hidden';
+            
+            startCountdown(() => {
+                document.getElementById('stimulus').innerText = trial.l1 + " " + trial.l2;
+                document.getElementById('stimulus').style.display = 'block';
+                document.getElementById('response-buttons').style.visibility = 'visible';
+                
+                startTime = performance.now();
+                acceptInput = true;
+            });
+        }
+
+        function startCountdown(onComplete) {
+            const display = document.getElementById('countdown');
+            display.style.display = 'block';
+            let start = performance.now();
+
+            function tick() {
+                let elapsed = performance.now() - start;
+                let remaining = 3000 - elapsed;
+
+                if (remaining <= 0) {
+                    display.style.display = 'none';
+                    onComplete();
+                } else {
+                    display.innerText = (remaining / 1000).toFixed(2);
+                    requestAnimationFrame(tick);
+                }
+            }
+            requestAnimationFrame(tick);
+        }
+
+        function recordResponse(isSamePressed) {
+            if (!acceptInput) return;
+            acceptInput = false;
+
+            const reactionTime = performance.now() - startTime;
+            const trial = blockTrials[currentBlockIndex][currentTrialIndex];
+            const isCorrect = (isSamePressed === trial.expected);
+
+            results.push({
+                condition: trial.cond,
+                class: trial.class,
+                rt: reactionTime,
+                correct: isCorrect
+            });
+
+            currentTrialIndex++;
+            runTrial();
+        }
+
+        window.addEventListener('keydown', function(event) {
+            if (!acceptInput) return;
+            if (event.key === 'ArrowLeft' || event.key === 'U' || event.key === 'u') {
+                recordResponse(true);
+            } else if (event.key === 'ArrowRight' || event.key === 'D' || event.key === 'd') {
+                recordResponse(false);
+            }
+        });
+
+        function endExperiment() {
+            showScreen('screen-results');
+            
+            const stats = {};
+            let maxAvgRT = 0;
+
+            results.forEach(r => {
+                if (!stats[r.condition]) {
+                    stats[r.condition] = { total: 0, correct: 0, sumRT: 0, countRT: 0, class: r.class };
+                }
+                stats[r.condition].total++;
+                if (r.correct) {
+                    stats[r.condition].correct++;
+                    stats[r.condition].sumRT += r.rt;
+                    stats[r.condition].countRT++;
+                }
+            });
+
+            for (const cond in stats) {
+                let avg = stats[cond].countRT > 0 ? (stats[cond].sumRT / stats[cond].countRT) : 0;
+                stats[cond].avgRT = avg;
+                if (avg > maxAvgRT) maxAvgRT = avg;
+            }
+
+            let html = "";
+            for (const [cond, data] of Object.entries(stats)) {
+                let accuracy = ((data.correct / data.total) * 100).toFixed(0);
+                let displayRT = data.avgRT.toFixed(0);
+                let barWidth = maxAvgRT > 0 ? (data.avgRT / maxAvgRT) * 100 : 0;
+
+                html += `
+                    <div class="res-card" style="border-color: var(--color);">
+                        <div class="res-header color-${data.class}">
+                            <span>${cond}</span>
+                            <span>Accuratezza: ${accuracy}%</span>
+                        </div>
+                        <div class="res-info">Risposte Esatte: <b>${data.correct}</b> su <b>${data.total}</b></div>
+                        <div class="res-info">Tempo di Reazione Medio: <b>${displayRT} ms</b> (solo corrette)</div>
+                        <div class="bar-container">
+                            <div class="bar bg-${data.class}" style="width: ${barWidth}%;"></div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('results-list').innerHTML = html;
+        }
+    </script>
+</body>
+</html>
